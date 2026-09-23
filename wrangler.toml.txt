@@ -1,0 +1,7 @@
+name = "x-panel-rtdb-probe"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+# wrangler.t
+# Secrets are set via CLI, NOT stored here:
+#   npx wrangler secret put BOT_TOKEN
+#   npx wrangler secret put CHAT_ID
