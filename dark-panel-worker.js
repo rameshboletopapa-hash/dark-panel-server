@@ -101,6 +101,12 @@ async function aesDecrypt(b64payload) {
         // 1. base64 → raw bytes
         const raw  = Uint8Array.from(atob(b64payload), c => c.charCodeAt(0));
 
+        // FIX: guard against truncated wire — minimum is salt(16)+iv(12)+authtag(16)+1 byte plain = 45
+        if (raw.length < 45) {
+            console.error(`[DP] wire too short: ${raw.length} bytes — expected ≥ 45`);
+            return null;
+        }
+
         // 2. slice the header
         const salt       = raw.slice(0, 16);   // 128-bit salt
         const iv         = raw.slice(16, 28);  // 96-bit IV  (GCM standard)
@@ -119,8 +125,11 @@ async function aesDecrypt(b64payload) {
         // 5. parse JSON
         return JSON.parse(new TextDecoder().decode(plainBuf));
 
-    } catch {
-        return null;  // bad payload, wrong key, or tampered data
+    } catch (err) {
+        // FIX: log the REAL error so you can see exactly what step failed
+        // (bad base64, PBKDF2 rejection, GCM auth-tag mismatch, JSON parse error)
+        console.error('[DP] aesDecrypt failed:', err?.message ?? String(err));
+        return null;
     }
 }
 
@@ -264,16 +273,27 @@ export default {
         try { body = await request.json(); }
         catch { return json({ error: 'Malformed request body' }, 400); }
 
-        // ─── AES-256-GCM decrypt ──────────────────────────────
+        // ─── Payload extraction ───────────────────────────────
         let payload;
         const version = body?.v || '1';
 
-        if (version === '2' && body?.data) {
-            // v2: AES-256-GCM + PBKDF2
+        if (version === 'b64' && body?.data) {
+            // v3: base64-encoded JSON — primary path
+            try {
+                const decoded = decodeURIComponent(
+                    Array.from(atob(body.data), c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+                );
+                payload = JSON.parse(decoded);
+            } catch (e) {
+                console.error('[DP] b64 decode failed:', e?.message ?? String(e));
+                return json({ error: 'Payload decode failed' }, 400);
+            }
+        } else if (version === '2' && body?.data) {
+            // v2: AES-256-GCM + PBKDF2 (legacy encrypted path)
             payload = await aesDecrypt(body.data);
             if (!payload) return json({ error: 'Payload integrity check failed' }, 400);
         } else {
-            // legacy plaintext fallback (v1 panels)
+            // v1: plaintext fallback
             payload = body;
         }
 
